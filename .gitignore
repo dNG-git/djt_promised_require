@@ -1,0 +1,8 @@
+.*
+*.pyc
+nbproject
+/_extras
+/dist
+/djt_promised_require.*
+/lib
+/node_modules
