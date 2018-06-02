@@ -24,7 +24,12 @@ declare function require(arg1: any, ...args: any[]): any;
  * "PromisedRequire" provides a "require()" implementation for CommonJS as
  * well as AMD based builds in a "Promise" based approach.
  *
- * @since v1.0.0
+ * @author    direct Netware Group
+ * @copyright (C) direct Netware Group - All rights reserved
+ * @package   djt-promised-require
+ * @since     v1.0.0
+ * @license   https://www.direct-netware.de/redirect?licenses;mpl2
+ *            Mozilla Public License, v. 2.0
  */
 export default class PromisedRequire {
     /**
@@ -44,9 +49,9 @@ export default class PromisedRequire {
     /**
      * Requires the given JavaScript modules.
      *
-     * @param {string[]} modules JavaScript module
+     * @param modules JavaScript module
      *
-     * @return {Promise} Promise
+     * @return Promise instance
      * @since  v1.0.0
      */
     public static async require(...modules: string[]) {
