@@ -82,14 +82,19 @@ export default class PromisedRequire {
                 if (!this.dynamicImport) {
                     this.dynamicImport = new Function(
                         'module',
-                        'if (module.match(/^\\w/)) { module = \'./\' + module + \'.js\'; } return import(module);'
+                        `
+if (!import.meta) { throw new Error('Dynamic imports are only available from within modules.'); }
+
+if (module.match(/^\\w/)) { module = \'./\' + module + \'.js\'; }
+return import(module);
+                        `
                     );
                 }
 
                 promise = Promise.all(modules.map((module) => this.dynamicImport(module)));
 
                 // tslint:disable-next-line:no-any
-                promise.then((modulesLoaded: any[]) => {
+                promise = promise.then((modulesLoaded: any[]) => {
                     let i = 0;
                     // tslint:disable-next-line:no-any
                     const moduleList: any = { };
