@@ -15,17 +15,6 @@
  */
 
 /**
- * Override for RequireJS function signature.
- */
-// tslint:disable-next-line:no-any
-declare function require(arg1: any, ...args: any[]): any;
-/**
- * Override for browser 'self' context.
- */
-// tslint:disable-next-line:no-any
-declare var self: any;
-
-/**
  * "PromisedRequire" provides a "require()" implementation for CommonJS as
  * well as AMD based builds in a "Promise" based approach.
  *
@@ -38,98 +27,104 @@ declare var self: any;
  */
 export default class PromisedRequire {
     /**
-     * Browser dynamic "import()" implementation
-     */
-    protected static readonly BROWSER_MODULE_IMPORT = 1;
-    /**
      * AMD "require()" implementation
      */
-    protected static readonly BROWSER_REQUIRE = 2;
+    protected static readonly BROWSER_REQUIRE = 1;
     /**
      * node (CommonJS) "require()" implementation
      */
-    protected static readonly NODE_REQUIRE = 3;
+    protected static readonly NODE_REQUIRE = 2;
+
     /**
-     * Function encapsuled import call
+     * Dynamically generated function to call the browser module import
+     * method. It is encapsuled to catch browser errors caused by "import"
+     * being parsed as a keyword for static imports.
      */
     // tslint:disable-next-line:ban-types
-    private static dynamicImport: Function;
-
+    private static browserImportImplementation: Function;
     /**
      * Flag indicating that the tag name has been registered
      */
     protected static requireImplementation: number = undefined;
 
     /**
+     * Function encapsuled import call
+     *
+     * @param module JavaScript module name
+     *
+     * @return Promise instance
+     * @since  v1.0.0
+     */
+    private static dynamicImport(modules: string[]) {
+        let _return;
+
+        if (this.requireImplementation === undefined) {
+            try {
+                this.browserImportImplementation = new Function(
+                    'module',
+                    `
+if (module.match(/^\\w/)) { module = './' + module + '.js'; }
+return import(module);
+                `);
+            } catch (unhandledException) { /* Fallback */ }
+        }
+
+        try {
+            if (this.browserImportImplementation !== undefined) {
+                _return = Promise.all(modules.map((module) => this.browserImportImplementation(module)));
+            }
+        } catch (unhandledException) { /* Fallback */ }
+
+        return _return;
+    }
+
+    /**
      * Requires the given JavaScript modules.
      *
-     * @param modules JavaScript module
+     * @param modules JavaScript module names
      *
      * @return Promise instance
      * @since  v1.0.0
      */
     public static async require(...modules: string[]) {
-        let promise;
+        let _return;
 
-        if (
-            this.requireImplementation === this.BROWSER_MODULE_IMPORT
-            || (
-                this.requireImplementation === undefined
-                && (typeof self == 'undefined' || self.document.location.protocol.toLowerCase() != 'file:')
-               )
-           ) {
-            try {
-                if (!this.dynamicImport) {
-                    this.dynamicImport = new Function(
-                        'module',
-                        `
-if (!import.meta) { throw new Error('Dynamic imports are only available from within modules.'); }
+        if (typeof self == 'undefined' || self.document.location.protocol.toLowerCase() != 'file:') {
+            _return = this.dynamicImport(modules);
+        }
 
-if (module.match(/^\\w/)) { module = \'./\' + module + \'.js\'; }
-return import(module);
-                        `
-                    );
-                }
-
-                promise = Promise.all(modules.map((module) => this.dynamicImport(module)));
-
+        if (_return) {
+            // tslint:disable-next-line:no-any
+            _return = _return.then((modulesLoaded: any[]) => {
+                let i = 0;
                 // tslint:disable-next-line:no-any
-                promise = promise.then((modulesLoaded: any[]) => {
-                    let i = 0;
-                    // tslint:disable-next-line:no-any
-                    const moduleList: any = { };
+                const moduleList: any = { };
 
-                    for (const moduleSpec of modules) {
-                        moduleList[moduleSpec] = (
-                            modulesLoaded[i].default ? modulesLoaded[i].default : modulesLoaded[i]
-                        );
+                for (const moduleSpec of modules) {
+                    moduleList[moduleSpec] = (
+                        modulesLoaded[i].default ? modulesLoaded[i].default : modulesLoaded[i]
+                    );
 
-                        i++;
-                    }
-
-                    return moduleList;
-                });
-
-                if (this.requireImplementation === undefined) {
-                    this.requireImplementation = this.BROWSER_MODULE_IMPORT;
+                    i++;
                 }
-            } catch (unhandledException) { /* Fallback */ }
-        }
 
-        if (this.requireImplementation === undefined && typeof require != 'undefined') {
-            this.requireImplementation = (
-                typeof __filename != 'undefined' ?
-                this.NODE_REQUIRE : this.BROWSER_REQUIRE
-            );
-        }
+                return moduleList;
+            });
+        } else {
+            if (this.requireImplementation === undefined && typeof require != 'undefined') {
+                this.requireImplementation = (
+                    typeof __filename != 'undefined' ?
+                    this.NODE_REQUIRE : this.BROWSER_REQUIRE
+                );
+            }
 
-        if (!promise) {
-            promise = new Promise((resolve, reject) => {
+            _return = new Promise((resolve, reject) => {
                 // tslint:disable-next-line:no-any
                 const moduleList: any = { };
 
                 switch (this.requireImplementation) {
                     case this.BROWSER_REQUIRE:
+                        // @ts-ignore
                         require(
                             modules,
                             (...modulesLoaded: object[]) => {
@@ -165,6 +160,6 @@ return import(module);
             });
         }
 
-        return promise;
+        return _return;
     }
 }
