@@ -3,7 +3,7 @@
     "license": "MPL-2.0",
     "description": "'djt-promised-require' is used to provide 'require()' for CommonJS as well as AMD based builds in a 'Promise' based approach.",
     "homepage": "https://www.direct-netware.de/redirect?djt;promised_require",
-    "version": "1.1.2",
+    "version": "1.2.0",
     "private": true,
     "repository": {
         "type": "git",

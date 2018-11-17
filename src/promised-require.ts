@@ -48,9 +48,9 @@ export default class PromisedRequire {
     protected static requireImplementation: number = undefined;
 
     /**
-     * Function encapsuled import call
+     * Function encapsuled import the given JavaScript modules.
      *
-     * @param module JavaScript module name
+     * @param modules JavaScript module names
      *
      * @return Promise instance
      * @since  v1.0.0
@@ -89,7 +89,13 @@ return import(module);
     public static async require(...modules: string[]) {
         let _return;
 
-        if (typeof self == 'undefined' || self.document.location.protocol.toLowerCase() != 'file:') {
+        if (
+            typeof self == 'undefined'
+            || (
+                self.djtRequireModulesDisabled !== true
+                && self.document.location.protocol.toLowerCase() != 'file:'
+            )
+        ) {
             _return = this.dynamicImport(modules);
         }
 
