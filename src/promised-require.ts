@@ -14,6 +14,8 @@
  * @license Mozilla Public License, v. 2.0
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
+
 /**
  * "PromisedRequire" provides a "require()" implementation for CommonJS as
  * well as AMD based builds in a "Promise" based approach.
@@ -27,25 +29,15 @@
  */
 export default class PromisedRequire {
     /**
-     * AMD "require()" implementation
-     */
-    protected static readonly BROWSER_REQUIRE = 1;
-    /**
-     * node (CommonJS) "require()" implementation
-     */
-    protected static readonly NODE_REQUIRE = 2;
-
-    /**
      * Dynamically generated function to call the browser module import
      * method. It is encapsuled to catch browser errors caused by "import"
      * being parsed as a keyword for static imports.
      */
-    // tslint:disable-next-line:ban-types
-    private static browserImportImplementation: Function;
+    private static browserImportImplementation: any;
     /**
      * Flag indicating that the tag name has been registered
      */
-    protected static requireImplementation: number = undefined;
+    protected static requireImplementation: any;
 
     /**
      * Function encapsuled import the given JavaScript modules.
@@ -60,6 +52,7 @@ export default class PromisedRequire {
 
         if (this.requireImplementation === undefined) {
             try {
+                // eslint-disable-next-line @typescript-eslint/no-implied-eval
                 this.browserImportImplementation = new Function(
                     'module',
                     `
@@ -86,24 +79,65 @@ return import(module);
      * @return Promise instance
      * @since  v1.0.0
      */
+    // eslint-disable-next-line @typescript-eslint/require-await
     public static async require(...modules: string[]) {
         let _return;
 
         if (
-            typeof self == 'undefined'
+            typeof document == 'undefined'
+            || typeof self == 'undefined'
             || (
-                self.djtRequireModulesDisabled !== true
-                && self.document.location.protocol.toLowerCase() != 'file:'
+                djtRequireModulesDisabled !== true
+                && document.location.protocol.toLowerCase() !== 'file:'
             )
         ) {
             _return = this.dynamicImport(modules);
         }
 
-        if (_return) {
-            // tslint:disable-next-line:no-any
+        if (_return === undefined) {
+            if (this.requireImplementation === undefined) {
+                // eslint-disable-next-line @typescript-eslint/no-implied-eval
+                this.requireImplementation = new Function(
+                    'modules',
+                    `
+return new Promise(function (resolve, reject) {
+    var moduleList = { };
+
+    if (typeof __filename != 'undefined') {
+        try {
+            for (var i = 0; i < modules.length; i++) {
+                var moduleLoaded = require(modules[i]);
+                moduleList[modules[i]] = (moduleLoaded.default ? moduleLoaded.default : moduleLoaded);
+            }
+
+            resolve(moduleList);
+        } catch (handledException) {
+            reject(handledException);
+        }
+    } else {
+        require(
+            modules,
+            function () {
+                for (var i = 0; i < arguments.length; i++) {
+                    moduleList[modules[i]] = arguments[i];
+                }
+
+                resolve(moduleList);
+            },
+            function (err) {
+                reject(err);
+            }
+        );
+    }
+});
+                `);
+            }
+
+            _return = this.requireImplementation(modules);
+        } else {
             _return = _return.then((modulesLoaded: any[]) => {
                 let i = 0;
-                // tslint:disable-next-line:no-any
+                // eslint-disable-next-line
                 const moduleList: any = { };
 
                 for (const moduleSpec of modules) {
@@ -115,54 +149,6 @@ return import(module);
                 }
 
                 return moduleList;
-            });
-        } else {
-            if (this.requireImplementation === undefined && typeof require != 'undefined') {
-                this.requireImplementation = (
-                    typeof __filename != 'undefined' ?
-                    this.NODE_REQUIRE : this.BROWSER_REQUIRE
-                );
-            }
-
-            _return = new Promise((resolve, reject) => {
-                // tslint:disable-next-line:no-any
-                const moduleList: any = { };
-
-                switch (this.requireImplementation) {
-                    case this.BROWSER_REQUIRE:
-                        // @ts-ignore
-                        require(
-                            modules,
-                            (...modulesLoaded: object[]) => {
-                                modulesLoaded.forEach((moduleLoaded: object, i: number) => {
-                                    moduleList[modules[i]] = moduleLoaded;
-                                });
-
-                                resolve(moduleList);
-                            },
-                            (err: Error) => {
-                                reject(err);
-                            }
-                        );
-
-                        break;
-                    case this.NODE_REQUIRE:
-                        try {
-                            for (const moduleSpec of modules) {
-                                const moduleLoaded = require(moduleSpec);
-
-                                moduleList[moduleSpec] = (moduleLoaded.default ? moduleLoaded.default : moduleLoaded);
-                            }
-
-                            resolve(moduleList);
-                        } catch (handledException) {
-                            reject(handledException);
-                        }
-
-                        break;
-                    default:
-                        reject(new Error('No require implementation available'));
-                }
             });
         }
 

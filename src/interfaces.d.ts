@@ -15,7 +15,18 @@
  */
 
 /**
+ * Global variable deactivating support for ESM.
+ */
+declare const djtRequireModulesDisabled: boolean;
+
+/**
+ * Override for browser 'document' context.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const document: any;
+
+/**
  * Override for browser 'self' context.
  */
-// tslint:disable-next-line:no-any
-declare var self: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const self: any;
