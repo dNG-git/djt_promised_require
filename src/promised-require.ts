@@ -87,7 +87,7 @@ return import(module);
             typeof document == 'undefined'
             || typeof self == 'undefined'
             || (
-                djtRequireModulesDisabled !== true
+                (typeof djtRequireModulesDisabled == 'undefined' || djtRequireModulesDisabled !== true)
                 && document.location.protocol.toLowerCase() !== 'file:'
             )
         ) {
