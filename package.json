@@ -1,13 +1,15 @@
 {
-    "name": "djt-promised-require",
+    "name": "@dng-git/djt-promised-require",
     "license": "MPL-2.0",
     "description": "'djt-promised-require' is used to provide 'require()' for CommonJS as well as AMD based builds in a 'Promise' based approach.",
     "homepage": "https://www.direct-netware.de/redirect?djt;promised_require",
     "version": "1.4.0",
-    "private": true,
     "repository": {
         "type": "git",
         "url": "https://github.com/dNG-git/djt_promised_require.git"
+    },
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
     },
     "main": "./lib/cjs/promised-require.js",
     "module": "./lib/promised-require.js",
